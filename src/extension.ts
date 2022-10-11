@@ -5,6 +5,8 @@ import runDraftCreate from './commands/runDraftTool/runDraftCreate';
 import runDraftGenerateWorkflow from './commands/runDraftTool/runDraftGenerateWorkflow';
 import runDraftSetupGH from './commands/runDraftTool/runDraftSetupGH';
 import runDraftUpdate from './commands/runDraftTool/runDraftUpdate';
+import runNubesgen from './commands/nubesgen/runNubesgen';
+import runScanNubesgen from './commands/nubesgen/runScanNubesgen';
 import { Reporter, reporter } from './utils/reporter';
 
 
@@ -54,10 +56,29 @@ export function activate(context: vscode.ExtensionContext) {
 		runDraftUpdate(context, vscode.Uri.parse(folder).fsPath);
 	});
 
+	let disposableNubesgen = vscode.commands.registerCommand('aks-draft-extension.runNubesgen', async (folder) => {
+		if (reporter) {
+            reporter.sendTelemetryEvent("command", { command: 'aks-draft-extension.runNubesgen' });
+        }
+		// The code you place here will be executed every time your command is executed
+		// Display a message box to the user
+		runNubesgen(context, vscode.Uri.parse(folder).fsPath);
+	});
+	let disposableScaneNubesgen = vscode.commands.registerCommand('aks-draft-extension.runScanNubesgen', async (folder) => {
+		if (reporter) {
+            reporter.sendTelemetryEvent("command", { command: 'aks-draft-extension.runScanNubesgen' });
+        }
+		// The code you place here will be executed every time your command is executed
+		// Display a message box to the user
+		runScanNubesgen(context, vscode.Uri.parse(folder).fsPath);
+	});
+
 	context.subscriptions.push(disposableCreate);
 	context.subscriptions.push(disposableSetupGH);
 	context.subscriptions.push(disposableGenerateWorkflow);
 	context.subscriptions.push(disposableUpdate);
+	context.subscriptions.push(disposableNubesgen);
+	context.subscriptions.push(disposableScaneNubesgen);
 }
 
 // this method is called when your extension is deactivated

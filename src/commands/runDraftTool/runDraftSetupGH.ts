@@ -3,7 +3,7 @@ import { getExtensionPath, longRunning } from '../../utils/host';
 import { failed } from '../../utils/errorable';
 import { createWebView } from '../../utils/webview';
 import { createDraftWebView, downloadDraftBinary, runDraftCommand } from './helper/runDraftHelper';
-import { InstallationResponse } from './model/installationResponse';
+import { InstallationResponse } from '../../utils/models/installationResponse';
 import { buildSetupGHCommand } from './helper/draftCommandBuilder';
 import { reporter } from '../../utils/reporter';
 

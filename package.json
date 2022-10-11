@@ -18,7 +18,9 @@
     "onCommand:aks-draft-extension.runDraftCreate",
     "onCommand:aks-draft-extension.runDraftSetupGH",
     "onCommand:aks-draft-extension.runDraftGenerateWorkflow",
-    "onCommand:aks-draft-extension.runDraftUpdate"
+    "onCommand:aks-draft-extension.runDraftUpdate",
+    "onCommand:aks-draft-extension.runNubesgen",
+    "onCommand:aks-draft-extension.runScanNubesgen"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -30,6 +32,12 @@
           "default": "v0.0.22",
           "title": "Draft repository release tag",
           "description": "Release tag for the stable Draft tool release."
+        },
+        "aks.nubesgen.releaseTag": {
+          "type": "string",
+          "default": "v0.13.0",
+          "title": "Nubesgen repository release tag",
+          "description": "Release tag for the stable Nubesgen tool release."
         }
       }
     },
@@ -49,6 +57,14 @@
       {
         "command": "aks-draft-extension.runDraftUpdate",
         "title": "Add Web App Routing Annotations"
+      },
+      {
+        "command": "aks-draft-extension.runNubesgen",
+        "title": "Run Nubesgen"
+      },
+      {
+        "command": "aks-draft-extension.runScanNubesgen",
+        "title": "Scan Nubesgen"
       }
     ],
     "menus": {
@@ -62,6 +78,10 @@
       "aksdevx.submenuDraft": [
         {
           "submenu": "aksdevx.aksDraftSubMenu",
+          "group": "draftnavigation"
+        },
+        {
+          "submenu": "aksdevx.aksNubesgenSubMenu",
           "group": "draftnavigation"
         }
       ],
@@ -82,6 +102,16 @@
           "command": "aks-draft-extension.runDraftUpdate",
           "group": "draftnavigation@4"
         }
+      ],
+      "aksdevx.aksNubesgenSubMenu": [
+        {
+          "command": "aks-draft-extension.runNubesgen",
+          "group": "draftnavigation@1"
+        },
+        {
+          "command": "aks-draft-extension.runScanNubesgen",
+          "group": "draftnavigation@2"
+        }
       ]
     },
     "submenus": [
@@ -92,6 +122,10 @@
       {
         "id": "aksdevx.aksDraftSubMenu",
         "label": "Draft Tools"
+      },
+      {
+        "id": "aksdevx.aksNubesgenSubMenu",
+        "label": "Nubesgen Tools"
       }
     ]
   },

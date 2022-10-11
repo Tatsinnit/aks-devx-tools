@@ -4,7 +4,7 @@ import { failed } from '../../utils/errorable';
 import { createWebView } from '../../utils/webview';
 import * as os from 'os';
 import { createDraftWebView, downloadDraftBinary, runDraftCommand } from './helper/runDraftHelper';
-import { InstallationResponse } from './model/installationResponse';
+import { InstallationResponse } from '../../utils/models/installationResponse';
 import { setFlagsFromString } from 'v8';
 import { buildCreateCommand, buildCreateConfig } from './helper/draftCommandBuilder';
 import { reporter } from '../../utils/reporter';

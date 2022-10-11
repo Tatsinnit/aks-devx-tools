@@ -2,14 +2,12 @@ import * as vscode from 'vscode';
 import { InstallationResponse } from '../../../utils/models/installationResponse';
 import { getRenderedContent, getResourceUri } from '../../../utils/webview';
 import * as fs from 'fs';
-import fetch from 'node-fetch';
 import * as os from "os";
 import * as download from '../../../component/download';
 import { baseInstallFolder } from '../../../utils/commandHelper';
 import * as path from 'path';
 import { combine, Errorable, failed, succeeded } from '../../../utils/errorable';
 import { shell } from '../../../utils/shell';
-import internal = require('stream');
 import { ReleaseConfig } from '../../../utils/models/releaseConfig';
 
 interface InstallResult {
@@ -24,31 +22,29 @@ interface LogSection {
     messages?: string;
 }
 
-export function createDraftWebView(
+export function createNubegenWebView(
     command: string,
     webview: vscode.Webview,
     extensionPath: string,
-    installationResponse: InstallationResponse,
-    getUserInput = false
+    installationResponse: InstallationResponse
 ) {
     // For the case of successful run of the tool we render webview with the output information.
+    //const webview = createWebView('AKS DevX Tool', `Nubegen Genegrate files.`);
     webview.html = getWebviewContent(
         command,
         installationResponse.name,
         extensionPath,
-        installationResponse,
-        getUserInput);
+        installationResponse);
 }
 
 function getWebviewContent(
     command: string,
     clustername: string,
     aksExtensionPath: string,
-    installationResponse: InstallationResponse,
-    getUserInput: boolean
+    installationResponse: InstallationResponse
 ): string {
-    const styleUri = getResourceUri(aksExtensionPath, 'rundrafttool', 'draft_style.css');
-    const templateUri = getResourceUri(aksExtensionPath, 'rundrafttool', `draft_${command}.html`);
+    const styleUri = getResourceUri(aksExtensionPath, 'nubesgen', 'nubesgen_style.css');
+    const templateUri = getResourceUri(aksExtensionPath, 'nubesgen', `nubesgen.html`);
 
     const installHtmlResult = getOrganisedInstallResult(clustername, installationResponse);
     const data = {
@@ -57,8 +53,7 @@ function getWebviewContent(
         mainMessage: installHtmlResult.mainMessage,
         resultLogs: installHtmlResult.logs,
         isSuccess: installHtmlResult.succeeded,
-        output: installHtmlResult.output,
-        getUserInput: getUserInput
+        output: installHtmlResult.output
     };
 
     return getRenderedContent(templateUri, data);
@@ -74,7 +69,7 @@ function getOrganisedInstallResult(
     const output = succeeded ? stdout : stderr;
 
     let logs: LogSection[] = [];
-    const mainMessage = succeeded ? 'Draft was executed successfully!' : 'Draft was not executed successfully.';
+    const mainMessage = succeeded ? 'Nubegen was executed successfully!' : 'Nubegen was not executed successfully.';
     const logsText = output?.split('\n');
     for (let i = 0; i < logsText.length; i++) {
         if (logsText[i].length > 0) {
@@ -93,8 +88,8 @@ function getOrganisedInstallResult(
     return installResults;
 }
 
-async function getLatestDraftReleaseTag() {
-    const draftConfig = getDraftConfig();
+async function getLatestNubesgenReleaseTag() {
+    const draftConfig = getNubegenConfig();
     if (failed(draftConfig)) {
         vscode.window.showErrorMessage(draftConfig.error);
         return undefined;
@@ -107,68 +102,31 @@ function checkIfDraftBinaryExist(destinationFile: string) : boolean {
     return fs.existsSync(destinationFile);
 }
 
-export async function downloadDraftBinary() {
-    // 0. Get latest release tag.
-    // 1: check if file already exist.
-    // 2: if not Download latest.
-    const latestReleaseTag = await getLatestDraftReleaseTag();
-
-    if (!latestReleaseTag) {
-        return;
-    }
-
-    const draftBinaryFile = getBinaryFileName();
-
-    // example latest release location: https://github.com/Azure/draft/releases/tag/v0.0.20
-    // Note: We need to carefully revisit this, because the way release files are named vs how frequent release will be.
-    // How do we know that the existing binary is latest or not?
-    let destinationFile = path.join(baseInstallFolder(), latestReleaseTag, draftBinaryFile);
-    if (shell.isWindows()) {
-        destinationFile = `${destinationFile}.exe`;
-    }
-
-    if (checkIfDraftBinaryExist(destinationFile)) {
-        return { succeeded: true };
-    }
-
-    const draftDownloadUrl = `https://github.com/Azure/draft/releases/download/${latestReleaseTag}/${draftBinaryFile}`;
-    const downloadResult = await download.once(draftDownloadUrl, destinationFile);
-
-    if (failed(downloadResult)) {
-        return { succeeded: false, error: [`Failed to download draft binary: ${downloadResult.error[0]}`] };
-    }
-    //If linux check -- make chmod 0755 
-    fs.chmodSync(destinationFile, "0755");
-    return succeeded(downloadResult);
-}
-
-function getBinaryFileName() {
-    let architecture = os.arch();
+function getNubegenBinaryFileName() {
     let operatingSystem = os.platform().toLocaleLowerCase();
+    let nubesgenBinaryFile = `nubesgen-cli-${operatingSystem}`;
 
-    if (architecture === 'x64') {
-        architecture = 'amd64';
-    }
-    let draftBinaryFile = `draft-${operatingSystem}-${architecture}`;
-
-    if (operatingSystem === 'win32') {
+    if (operatingSystem === "darwin") {
+        operatingSystem = "macos";
+        nubesgenBinaryFile = `nubesgen-cli-${operatingSystem}`;
+    } else if (operatingSystem === 'win32') {
         operatingSystem = 'windows';
-        // Draft release v0.0.22 the file name has exe associated with it.
-        draftBinaryFile = `draft-${operatingSystem}-${architecture}.exe`;
+        // Draft release v0.13.0 the file name has exe associated with it.
+        nubesgenBinaryFile = `nubesgen-cli-${operatingSystem}.exe`;
     }
 
-    return draftBinaryFile;
+    return nubesgenBinaryFile;
 }
 
-export async function runDraftCommand(
+export async function runNubesgenCommand(
     command: string
 ) : Promise<[string, string]> {
-    const latestReleaseTag = await getLatestDraftReleaseTag();
+    const latestReleaseTag = await getLatestNubesgenReleaseTag();
     if (!latestReleaseTag) {
         return [ "", ""];
     }
-    const draftBinaryFile = getBinaryFileName();
-    const destinationBinaryFile = path.join(baseInstallFolder(), latestReleaseTag, draftBinaryFile);
+    const nubesgenBinaryFile = getNubegenBinaryFileName();
+    const destinationBinaryFile = path.join(baseInstallFolder(), latestReleaseTag, nubesgenBinaryFile);
     const runCommandOutput = await shell.exec(`${destinationBinaryFile} ${command}`);
 
     if (failed(runCommandOutput)) {
@@ -178,14 +136,14 @@ export async function runDraftCommand(
     return [runCommandOutput.result.stdout, runCommandOutput.result.stderr];
 }
 
-export function getDraftConfig(): Errorable<ReleaseConfig> {
-    const draftConfig = vscode.workspace.getConfiguration('aks.draft');
+export function getNubegenConfig(): Errorable<ReleaseConfig> {
+    const nubesgenConfig = vscode.workspace.getConfiguration('aks.nubesgen');
     const props = combine([
-        getConfigValue(draftConfig, 'releaseTag')
+        getConfigValue(nubesgenConfig, 'releaseTag')
     ]);
 
     if (failed(props)) {
-        return { succeeded: false, error: `Failed to read aks.draft configuration: ${props.error}` };
+        return { succeeded: false, error: `Failed to read aks.nubesgen configuration: ${props.error}` };
     }
 
     const config = {
@@ -194,6 +152,7 @@ export function getDraftConfig(): Errorable<ReleaseConfig> {
 
     return { succeeded: true, result: config };
 }
+
 
 function getConfigValue(config: vscode.WorkspaceConfiguration, key: string): Errorable<string> {
     const value = config.get(key);
@@ -205,4 +164,36 @@ function getConfigValue(config: vscode.WorkspaceConfiguration, key: string): Err
         return { succeeded: false, error: `${key} value has type: ${typeof value}; expected string.` }
     }
     return { succeeded: true, result: result };
+}
+
+
+export async function downloadNubesgenBinary() {
+    // 0. Get latest release tag.
+    // 1: check if file already exist.
+    // 2: if not Download latest.
+    const latestReleaseTag = await getLatestNubesgenReleaseTag();
+
+    if (!latestReleaseTag) {
+        return;
+    }
+
+    const nubegenBinaryFile = getNubegenBinaryFileName();
+
+    // example latest release location: https://github.com/microsoft/NubesGen/releases
+    let destinationFile = path.join(baseInstallFolder(), latestReleaseTag, nubegenBinaryFile);
+
+    if (checkIfDraftBinaryExist(destinationFile)) {
+        return { succeeded: true };
+    }
+
+    const draftDownloadUrl = `https://github.com/microsoft/NubesGen/releases/download/${latestReleaseTag}/${nubegenBinaryFile}`;
+    const downloadResult = await download.once(draftDownloadUrl, destinationFile);
+
+    if (failed(downloadResult)) {
+        return { succeeded: false, error: [`Failed to download nubegen binary: ${downloadResult.error[0]}`] };
+    }
+
+    //If linux check -- make chmod 0755 
+    fs.chmodSync(destinationFile, "0755");
+    return succeeded(downloadResult);
 }
